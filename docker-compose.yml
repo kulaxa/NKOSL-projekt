@@ -1,45 +1,61 @@
-version: "2"
-services:
-   database:
-      container_name: postgres
-      image: postgres:latest
-      env_file: db/env_db.conf
-      restart: always
-      ports:
-         - 5432:5432
-#      networks:
-#         - net
-      network_mode: host
-      #healthcheck:
-         #test: [ "CMD", "pg_isready", "-q", "-d", "nkosl", "-U", "postgres" ]
-        # timeout: 20s
-        # retries: 1
-      volumes:
-         - db_volume:/var/lib/postgresql
-   app:
-      container_name: application
-      build:
-         context: app/nkosl-blog/
-         dockerfile: Dockerfile
-      env_file: app/nkosl-blog/env_app.conf
-      restart: always
-      ports:
-         - 80:80
-      expose:
-         - 8080
-#      networks:
-#         - net
+version: '3'
 
-      network_mode: host
-#      links: 
-#         - database    
-      depends_on:
-         - database
-          #  condition: service_healthy
+services:
+  web:
+    image: 'gitlab/gitlab-ee:latest'
+    container_name: web
+    restart: always
+    hostname: 'mario-nkosl-docker-registry.duckdns.org'
+    environment:
+      GITLAB_OMNIBUS_CONFIG: | 
+        external_url = 'https://mario-nkosl-docker-registry.duckdns.org'
+        gitlab_rails['gitlab_shell_ssh_port'] = 222
+#        nginx['listen-port'] = 80
+#        nginx['listen_https'] = false.
+        # Add any other gitlab.rb configuration here, each on its own line
+    ports:
+      - '80:80'
+      - '443:443'
+      - '222:22'
+    volumes:
+      - '/srv/gitlab/config:/etc/gitlab'
+      - '/srv/gitlab/logs:/var/log/gitlab'
+      - '/srv/gitlab/data:/var/opt/gitlab'
+    shm_size: '256m'
+
+
+  nginxgit:
+    container_name: nginxGit
+    build:
+      context: nginxGitlab/
+      dockerfile: DockerfileN
+    ports:
+      - 800:80
+    restart: always
+#    network_mode: host
+    networks:
+     - bridge
+    links: 
+      - web
+    depends_on:
+      - web
+
+  registry:
+    restart: always
+    image: registry:2
+    ports:
+      - 5001:5000
+    networks: 
+     - bridge
+    environment:
+     -  REGISTRY_HTTP_HOST=http://mario-nkosl-app.duckdns.org:800
+    volumes:
+      - /path/data:/var/lib/registry
+
+
+
 volumes:
    db_volume:
-networks:
-   net:
- #  default:
-  #    external:
-   #      name: net
+
+networks: 
+  bridge:

@@ -1,0 +1,144 @@
+version: '3'
+
+services:
+  database:
+     container_name: postgres
+     image: postgres:latest
+     env_file: db/env_db.conf
+     restart: always
+     ports:
+        - 5432:5432
+#     expose:
+#       - 5423
+#     networks:
+#        - bridge
+     network_mode: host
+#     links:
+#       - "app"
+     volumes:
+       - db_volume:/var/lib/postgresql
+  nginx:
+    container_name: nginxApp
+#    image: ubuntu:latest
+    build:
+      context: nginx/
+      dockerfile: DockerfileN
+    ports:
+      - 8080:80
+#    volumes:
+ #     - './nginx/nkosl_blog.conf:/etc/nginx/sites-enabled/default'
+#      - '/root/NKOSLtransfer/nginx/nkosl_blog.conf:/etc/nginx/sites-enabled/default'
+#      - './nginx/live:/etc/letsencrypt/live'
+
+
+    restart: always
+    network_mode: host
+    depends_on:
+      - app
+  app:
+     container_name: application
+     build:
+        context: app/nkosl-blog/
+        dockerfile: Dockerfile
+     env_file: app/nkosl-blog/env_app.conf
+     restart: always
+     expose:
+        - 5000
+     network_mode: host
+#     links: 
+#       - "database"    
+     depends_on:
+         - database
+#  web:
+#    container_name: web
+#    build:
+#      context: ./gitlab/
+#      dockerfile: Dockerfile
+#    restart: always
+#    hostname: 'mario-nkosl-docker-registry.duckdns.org'
+#    environment:
+#      GITLAB_OMNIBUS_CONFIG: | 
+#        external_url 'http://mario-nkosl-docker-registry.duckdns.org'
+#        nginx['listen_port'] = 800
+#        nginx['listen_https'] = false
+#        nginx['enable'] = true
+#        gitlab_rails['gitlab_shell_ssh_port'] = 222
+#        # Add any other gitlab.rb configuration here, each on its own line
+#    ports:
+#      - 800:80
+#      - 222:22
+##    network_mode: host
+#    networks:
+#     - bridge
+#    expose: 
+#      - 800
+#    volumes:
+#      - '$GITLAB_HOME/config:/etc/gitlab'
+#      - '$GITLAB_HOME/logs:/var/log/gitlab'
+#      - '$GITLAB_HOME/data:/var/opt/gitlab'
+#    shm_size: '256m'
+
+  web:
+    image: 'gitlab/gitlab-ee:latest'
+    container_name: web
+    restart: always
+    hostname: 'mario-nkosl-docker-registry.duckdns.org'
+    environment:
+      GITLAB_OMNIBUS_CONFIG: | 
+        external_url = 'https://mario-nkosl-docker-registry.duckdns.org'
+        gitlab_rails['gitlab_shell_ssh_port'] = 222
+        # Add any other gitlab.rb configuration here, each on its own line
+    ports:
+      - '80:80'
+      - '443:443'
+      - '222:22'
+#    networks:
+#      - bridge
+    volumes:
+      - '/srv/gitlab/config:/etc/gitlab'
+      - '/srv/gitlab/logs:/var/log/gitlab'
+      - '/srv/gitlab/data:/var/opt/gitlab'
+    shm_size: '256m'
+
+
+  nginxgit:
+    container_name: nginxGit
+    build:
+      context: nginxGitlab/
+      dockerfile: DockerfileN
+    ports:
+      - 800:80
+    restart: always
+#    network_mode: host
+    networks:
+     - bridge
+    links: 
+      - web
+    depends_on:
+      - web
+
+  registry:
+    restart: always
+    image: registry:2
+    ports:
+      - 5001:5000
+    networks: 
+     - bridge
+#    environment:
+   # REGISTRY_HTTP_TLS_CERTIFICATE: /certs/domain.crt
+   # REGISTRY_HTTP_TLS_KEY: /certs/domain.key
+   # REGISTRY_AUTH: htpasswd
+   # REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+   # REGISTRY_AUTH_HTPASSWD_REALM: Registry Realm
+    volumes:
+      - /path/data:/var/lib/registry
+      #- /path/certs:/certs
+      #- /path/auth:/auth
+
+
+
+volumes:
+   db_volume:
+
+networks: 
+  bridge:
