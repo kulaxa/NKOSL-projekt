@@ -4,5 +4,6 @@ set -euo pipefail
 
 flask db upgrade
 
-gunicorn -b 0.0.0.0:80 app:nkosl_app
+gunicorn -b 0.0.0.0:5000 app:nkosl_app
 
+#service nginx start
