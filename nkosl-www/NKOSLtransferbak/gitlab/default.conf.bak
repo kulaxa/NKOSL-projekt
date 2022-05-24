@@ -1,0 +1,23 @@
+
+server {
+    listen 80;
+    server_name mario-nkosl-gitlab2.duckdns.org;
+    return 301 https://$host$request_uri;
+
+}
+
+server{
+   listen 443 ssl;
+   server_name mario-nkosl-gitlab2.duckdns.org;
+   access_log /var/log/nginx/gitlab.access.log;
+   error_log /var/log/nginx/gitlab.error.log;
+
+  ssl_certificate /etc/letsencrypt/live/mario-nkosl-gitlab2.duckdns.org/fullchain.pem ;
+  ssl_certificate_key /etc/letsencrypt/live/mario-nkosl-gitlab2.duckdns.org/privkey.pem ;
+
+  location / {
+     include proxy_params;
+     proxy_pass http://localhost:5000;
+
+}
+}

@@ -1,0 +1,95 @@
+version: '3.6'
+services:
+
+  server: 
+    name: server
+    image: nginx
+    volumes:
+      #- ./templates:/etc/nginx/templates
+      - ./nkosl_blog.conf:/etc/nginx/conf.d/default.conf
+      - ./nkosl_blog.conf:/etc/nginx/conf.d/default.conf
+- ./nkosl_blog.conf:/etc/nginx/conf.d/default.conf
+
+    ports:
+     - "8080:80"
+    environment:
+     - NGINX_HOST=foobar.com
+     - NGINX_PORT=80
+     # - ./templates:/etc/nginx/templates
+  
+
+  web:
+#    image: 'gitlab/gitlab-ee:latest'
+    build:
+      context: ./gitlab/
+      dockerfile: Dockerfile
+    restart: always
+    hostname: 'mario-nkosl-gitlab.duckdns.org'
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://mario-nkosl-gitlab.duckdns.org'
+        nginx['listen_port'] = 80
+        nginx['listen_https'] = false
+        gitlab_rails['gitlab_shell_ssh_port'] =22
+        # Add any other gitlab.rb configuration here, each on its own line
+  #  build:
+  #    context: ./gitlab/
+  #    dockerfile: Dockerfile
+    ports:
+      - 800:80
+      - 222:22
+    volumes:
+      - '$GITLAB_HOME/config:/etc/gitlab'
+      - '$GITLAB_HOME/logs:/var/log/gitlab'
+      - '$GITLAB_HOME/data:/var/opt/gitlab'
+      - ./nkosl_blog.conf:/etc/nginx/sites-enabled/default
+#      - ./default.conf:/etc/nginx/conf.d/default.conf
+    shm_size: '256m'
+#    networks:
+#      - net
+    network_mode: host
+    depends_on:
+      - app
+  database:
+     container_name: postgres
+     image: postgres:latest
+     env_file: db/env_db.conf
+     restart: always
+     ports:
+        - 5432:5432
+#     networks:
+#        - net
+     network_mode: host
+      #healthcheck:
+         #test: [ "CMD", "pg_isready", "-q", "-d", "nkosl", "-U", "postgres" ]
+        # timeout: 20s
+        # retries: 1
+     volumes:
+        - db_volume:/var/lib/postgresql
+  app:
+     container_name: application
+     build:
+        context: app/nkosl-blog/
+        dockerfile: Dockerfile
+     env_file: app/nkosl-blog/env_app.conf
+     restart: always
+     ports:
+        - 80:80
+     expose:
+        - 5000
+     volumes: 
+        - ./nkosl_blog.conf:/etc/nginx/conf.d/default.conf
+#     networks:
+#       - net
+
+     network_mode: host
+#      links: 
+#         - database    
+     depends_on:
+         - database
+          #  condition: service_healthy
+volumes:
+   db_volume:
+networks:
+   net:
+

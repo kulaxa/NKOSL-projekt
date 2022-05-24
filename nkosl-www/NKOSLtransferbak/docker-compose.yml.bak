@@ -1,0 +1,45 @@
+version: "2"
+services:
+   database:
+      container_name: postgres
+      image: postgres:latest
+      env_file: db/env_db.conf
+      restart: always
+      ports:
+         - 5432:5432
+#      networks:
+#         - net
+      network_mode: host
+      #healthcheck:
+         #test: [ "CMD", "pg_isready", "-q", "-d", "nkosl", "-U", "postgres" ]
+        # timeout: 20s
+        # retries: 1
+      volumes:
+         - db_volume:/var/lib/postgresql
+   app:
+      container_name: application
+      build:
+         context: app/nkosl-blog/
+         dockerfile: Dockerfile
+      env_file: app/nkosl-blog/env_app.conf
+      restart: always
+      ports:
+         - 80:80
+      expose:
+         - 8080
+#      networks:
+#         - net
+
+      network_mode: host
+#      links: 
+#         - database    
+      depends_on:
+         - database
+          #  condition: service_healthy
+volumes:
+   db_volume:
+networks:
+   net:
+ #  default:
+  #    external:
+   #      name: net
